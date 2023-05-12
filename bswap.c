@@ -73,21 +73,30 @@ static ntype parse_number(const char *str)
 static char *bswap(ntype base, ntype num)
 {
     static char ret[256];
-    /* size_t i; */
+    size_t i;
 
     if(!num)
         return "0";
     if(base > 36 || base <= 0)
         CRASH("invalid base \'%lld\', try a different one [range 1-36]\n", base);
 
-    /* for(i = 0; i < 256; i++) { */
-    /*     if((num % squared(base, i)) <= base) */
-    /*         ret[i] = symbols[num % squared(base, i)]; */
-    /* } */
+    switch(base) {
+        case 10: snprintf(ret, 256, "%lld", num); break;
+        case 16: snprintf(ret, 256, "%llX", num); break;
+        case 8:  snprintf(ret, 256, "%llo", num); break;
+        case 2: {
+            i = 0;
+            while(num) {
+                if(num & 1)
+                    ret[i++] = '1';
+                else
+                    ret[i++] = '0';
+                num >>= 1;
+            }
+        } break;
+    }
 
-    snprintf(ret, 256, "%lld", num);
-
-    return ret;;
+    return ret;
 }
 
 int main(int argc, char **argv)
