@@ -1,3 +1,26 @@
-.TH
-BSWAP
-
+.Dd May 2023
+.Dt BSWAP 1
+.Os UNIX
+.Sh NAME
+.Nm bswap
+.Nd swap between number bases
+.Sh Synopsis
+.Nm
+.Op Fl -version
+.Op Ar "input number"
+.Sh DESCRIPTION
+.Nm
+swaps the input number and prints it in the given base to stdout.
+If the number is preceeded by '0x', '0o', or '0b', it is read in hex,
+octal or binary accordingly, otherwise as a base-10 number. In base
+10 mode, any extra letter will append a 0 to the output (preppending
+letters and spaces are ignored).
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl -version
+Print out version and author
+.El
+.Sh AUTHORS
+rarafael, personal@rarafael.net <https://rarafael.net>
+.Sh SEE ALSO
+.Xr printf 1
