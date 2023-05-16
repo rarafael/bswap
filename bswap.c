@@ -7,20 +7,23 @@
 #define PROGRAM "bswap"
 #define AUTHOR  "rarafael <https://rarafael.net>"
 #define VERSION "1.0.0"
-
-#define CRASH(...)\
-    do {\
-        fprintf(stderr, __VA_ARGS__);\
-        exit(EXIT_FAILURE);\
-    } while(0);
+#define USAGE   "usage: %s [output base] [number]\n"\
+                "     --version: provides program version\n"
 
 typedef signed long long int ntype;
+typedef unsigned long long int untype;
 
 static const char *symbols = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-static inline ntype squared(size_t input, int exp)
+void usage(void)
 {
-    int result;
+    fprintf(stdout, "usage: bswap [output base] [number]\n"
+                    "     --version: provides program version\n");
+}
+
+ntype squared(ntype input, size_t exp)
+{
+    ntype result;
 
     result = 1;
     while(exp) {
@@ -33,13 +36,14 @@ static inline ntype squared(size_t input, int exp)
     return result;
 }
 
-static inline ntype parse_numberX(const char *str, const int x, const size_t length)
+ntype parse_numberX(char *str, int x, size_t length)
 {
     ntype ret;
     size_t i, n;
     char isneg;
 
     ret = 0;
+    isneg = 0;
     if(str[0] == '-')
         isneg = 1;
     for(i = 0; i <= length; i++) {
@@ -49,50 +53,58 @@ static inline ntype parse_numberX(const char *str, const int x, const size_t len
         }
     }
 
-    return isneg ? ret : -ret;
+    return isneg ? -ret : ret;
 }
 
-static ntype parse_number(const char *str)
+int parse_number(char *str, ntype *out)
 {
     if(!strlen(str) || !str)
-        return INT_MAX;
+        return 1;
 
     if(strlen(str) > 2 && str[0] == '0') {
         switch(str[1]) {
-            case 'x': return parse_numberX(str, 16, strlen(str) - 1);
-            case 'o': return parse_numberX(str, 8, strlen(str) - 1);
-            case 'b': return parse_numberX(str, 2, strlen(str) - 1);
-            default: return parse_numberX(str, 10, strlen(str) - 1);
+            case 'x': *out = parse_numberX(str, 16, strlen(str) - 1); return 0;
+            case 'o': *out = parse_numberX(str, 8, strlen(str) - 1); return 0;
+            case 'b': *out = parse_numberX(str, 2, strlen(str) - 1); return 0;
+            default: *out = parse_numberX(str, 10, strlen(str) - 1); return 0;
         }
     } else
-        return parse_numberX(str, 10, strlen(str) - 1);
+        *out = parse_numberX(str, 10, strlen(str) - 1); 
 
-    return INT_MAX;
+    return 0;
 }
 
-static char *bswap(ntype base, ntype num)
+char *bswap(ntype base, ntype num)
 {
     static char ret[256];
+    untype n;
     size_t i;
+    char *tmp;
 
     if(!num)
         return "0";
-    if(base != 10 || base != 16 || base != 2 || base != 8)
-        CRASH("invalid base \'%lld\', try a different one [10/16/2/8]\n", base);
+    if(base != 10 && base != 16 && base != 2 && base != 8) {
+        fprintf(stderr, "invalid base \'%lld\', try a different one [10/16/2/8]\n", base);
+        exit(EXIT_FAILURE);
+    }
 
     switch(base) {
         case 10: snprintf(ret, 256, "%lld", num); break;
         case 16: snprintf(ret, 256, "%llX", num); break;
         case 8:  snprintf(ret, 256, "%llo", num); break;
         case 2: {
-            i = 0;
-            while(num) {
-                if(num & 1)
-                    ret[i++] = '1';
+            n = (untype)num;
+            for(i = 0; i <= sizeof(untype) * 8; i++) {
+                if(n & 1)
+                    ret[(sizeof(untype) * 8) - i] = '1';
                 else
-                    ret[i++] = '0';
-                num >>= 1;
+                    ret[(sizeof(untype) * 8) - i] = '0';
+                n >>= 1;
             }
+            tmp = &ret[0];
+            while(*tmp == '0')
+                tmp++;
+            return tmp;
         } break;
     }
 
@@ -102,10 +114,12 @@ static char *bswap(ntype base, ntype num)
 int main(int argc, char **argv)
 {
     static ntype base, num;
+    int result;
 
-    if(argc < 2)
-        CRASH("usage: %s [output base] [number]\n"
-              "     --version: provides program version\n", argv[0]);
+    if(argc < 2) {
+        usage();
+        exit(EXIT_FAILURE);
+    }
 
     if(!strcmp(argv[1], "--version")) {
         fprintf(stdout, PROGRAM " version: "
@@ -113,14 +127,22 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
     }
 
-    if(argc < 3)
-        CRASH("usage: %s [output base] [number]\n"
-              "     --version: provides program version\n", argv[0]);
+    if(argc < 3) {
+        usage();
+        exit(EXIT_FAILURE);
+    }
 
-    if((num = parse_number(argv[2])) == INT_MAX)
-        CRASH("failed reading number from string \'%s\'\n", argv[2]);
-    if((base = parse_number(argv[1])) == INT_MAX)
-        CRASH("failed reading base from string \'%s\'\n", argv[1]);
+    result = parse_number(argv[2], &num);
+    if(result) {
+        fprintf(stderr, "failed reading number from string \'%s\'\n", argv[2]);
+        exit(EXIT_FAILURE);
+    }
+
+    result = parse_number(argv[1], &base);
+    if(result) {
+        fprintf(stderr, "failed reading base from string \'%s\'\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
 
     puts(bswap(base, num));
 
