@@ -33,7 +33,7 @@ static inline ntype squared(size_t input, int exp)
     return result;
 }
 
-static inline ntype parse_numberX (const char *str, const int x, const size_t length)
+static inline ntype parse_numberX(const char *str, const int x, const size_t length)
 {
     ntype ret;
     size_t i, n;
@@ -77,8 +77,8 @@ static char *bswap(ntype base, ntype num)
 
     if(!num)
         return "0";
-    if(base > 36 || base <= 0)
-        CRASH("invalid base \'%lld\', try a different one [range 1-36]\n", base);
+    if(base != 10 || base != 16 || base != 2 || base != 8)
+        CRASH("invalid base \'%lld\', try a different one [10/16/2/8]\n", base);
 
     switch(base) {
         case 10: snprintf(ret, 256, "%lld", num); break;
@@ -102,6 +102,10 @@ static char *bswap(ntype base, ntype num)
 int main(int argc, char **argv)
 {
     static ntype base, num;
+
+    if(argc < 2)
+        CRASH("usage: %s [output base] [number]\n"
+              "     --version: provides program version\n", argv[0]);
 
     if(!strcmp(argv[1], "--version")) {
         fprintf(stdout, PROGRAM " version: "
